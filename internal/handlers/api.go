@@ -17,11 +17,12 @@ func Setup(database *sql.DB) {
 func RegisterAPIRoutes(r chi.Router) {
 
 	r.Post("/login", LoginHandler)
-	r.Post("/logout", LogoutHandler)
 
 	// routes protégées
 	r.Group(func(protected chi.Router) {
 		protected.Use(middleware.AuthMiddleware(db)) // middleware prend db
+		
 		protected.Post("/logout", LogoutHandler)
+
 	})
 }
