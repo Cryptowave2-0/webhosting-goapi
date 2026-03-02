@@ -24,5 +24,16 @@ func RegisterAPIRoutes(r chi.Router) {
 		
 		protected.Post("/logout", LogoutHandler)
 
+		// Scripts
+		protected.Post("/scripts/upload", UploadScriptHandler)
+		protected.Get("/scripts", ListScriptsHandler)
+		protected.Get("/scripts/{id}", GetScriptHandler)
+		protected.Delete("/scripts/{id}", DeleteScriptHandler)
+
+		// Exécutions
+		protected.Post("/scripts/{id}/run", RunScriptHandler)
+		protected.Get("/executions/{id}", GetExecutionHandler)
+		protected.Get("/executions/{id}/logs", GetExecutionLogsHandler)
+
 	})
 }
