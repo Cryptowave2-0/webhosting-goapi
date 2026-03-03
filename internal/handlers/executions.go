@@ -65,8 +65,13 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 func runContainer(executionID, dockerImage, filePath, language string) {
 	ctx := context.Background()
 
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	cli, err := client.NewClientWithOpts(
+		client.WithHost("npipe:////./pipe/docker_engine"),
+		client.WithAPIVersionNegotiation(),
+	)
 	if err != nil {
+    	fmt.Println("Docker client error:", err)
+    	storeLogs(executionID, "stderr", "Docker client error: "+err.Error())
 		updateExecution(executionID, "failed", -1)
 		return
 	}
@@ -77,7 +82,7 @@ func runContainer(executionID, dockerImage, filePath, language string) {
 	var cmd []string
 	switch language {
 	case "python":
-		cmd = []string{"python", "/app/script" + ext}
+		cmd = []string{"python", "-u", "/app/script" + ext}
 	case "bash":
 		cmd = []string{"bash", "/app/script" + ext}
 	case "nodejs", "js":
@@ -101,6 +106,8 @@ func runContainer(executionID, dockerImage, filePath, language string) {
 		nil, nil, executionID,
 	)
 	if err != nil {
+		fmt.Println("ContainerCreate error:", err)
+		storeLogs(executionID, "stderr", "ContainerCreate error: "+err.Error())
 		updateExecution(executionID, "failed", -1)
 		return
 	}
