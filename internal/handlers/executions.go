@@ -28,12 +28,13 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 		DockerImage string
 		FilePath    string
 		Language    string
+		Entrypoint  string
 	}
 	var script Script
 	err := db.QueryRow(
-		`SELECT docker_image, file_path, language FROM scripts WHERE id = ? AND user_id = ?`,
+		`SELECT docker_image, file_path, language, entrypoint FROM scripts WHERE id = ? AND user_id = ?`,
 		scriptID, userID,
-	).Scan(&script.DockerImage, &script.FilePath, &script.Language)
+	).Scan(&script.DockerImage, &script.FilePath, &script.Language, &script.Entrypoint)
 	if err != nil {
 		http.Error(w, "Script not found", http.StatusNotFound)
 		return
@@ -51,7 +52,7 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Lancer le conteneur en arrière-plan
-	go runContainer(executionID, script.DockerImage, script.FilePath, script.Language)
+	go runContainer(executionID, script.DockerImage, script.FilePath, script.Language, script.Entrypoint)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusAccepted)
@@ -62,7 +63,7 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // runContainer lance le script dans Docker et stocke les logs
-func runContainer(executionID, dockerImage, filePath, language string) {
+func runContainer(executionID, dockerImage, dirPath, language, entrypoint string) {
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(
@@ -70,29 +71,29 @@ func runContainer(executionID, dockerImage, filePath, language string) {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-    	fmt.Println("Docker client error:", err)
-    	storeLogs(executionID, "stderr", "Docker client error: "+err.Error())
+		fmt.Println("Docker client error:", err)
+		storeLogs(executionID, "stderr", "Docker client error: "+err.Error())
 		updateExecution(executionID, "failed", -1)
 		return
 	}
 	defer cli.Close()
 
-	// Commande selon le langage
-	ext := filepath.Ext(filePath)
+	// Commande via l'entrypoint
+	containerEntry := "/app/" + entrypoint
 	var cmd []string
 	switch language {
 	case "python":
-		cmd = []string{"python", "-u", "/app/script" + ext}
+		cmd = []string{"python", "-u", containerEntry}
 	case "bash":
-		cmd = []string{"bash", "/app/script" + ext}
+		cmd = []string{"bash", containerEntry}
 	case "nodejs", "js":
-		cmd = []string{"node", "/app/script" + ext}
+		cmd = []string{"node", containerEntry}
 	default:
-		cmd = []string{"sh", "/app/script" + ext}
+		cmd = []string{"sh", containerEntry}
 	}
 
-	// Chemin absolu pour le bind mount
-	absPath, _ := filepath.Abs(filePath)
+	// Monter tout le dossier dans /app/
+	absPath, _ := filepath.Abs(dirPath)
 
 	resp, err := cli.ContainerCreate(ctx,
 		&container.Config{
@@ -100,8 +101,8 @@ func runContainer(executionID, dockerImage, filePath, language string) {
 			Cmd:   cmd,
 		},
 		&container.HostConfig{
-			Binds:      []string{absPath + ":/app/script" + ext + ":ro"},
-			AutoRemove: false, // on veut lire les logs après
+			Binds:      []string{absPath + ":/app:ro"},
+			AutoRemove: false,
 		},
 		nil, nil, executionID,
 	)

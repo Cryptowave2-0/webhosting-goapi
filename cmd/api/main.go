@@ -126,4 +126,6 @@ func initDB(db *sql.DB) {
 		fmt.Println("Table 'logs' created succesfully")
 	}
 
+	db.Exec(`ALTER TABLE scripts ADD COLUMN entrypoint TEXT NOT NULL DEFAULT '';`)
+
 }
