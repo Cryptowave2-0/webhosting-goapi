@@ -5,6 +5,7 @@ go 1.25.6
 require (
 	github.com/docker/docker v27.0.0+incompatible
 	github.com/go-chi/chi v1.5.5
+	github.com/go-chi/cors v1.2.2
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.33
 	github.com/sirupsen/logrus v1.9.4

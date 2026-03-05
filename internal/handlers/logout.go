@@ -18,8 +18,9 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
-		HttpOnly: true,
-		Secure:   false,
+		HttpOnly: false,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
 	})
 
 	w.Write([]byte("Logged out"))

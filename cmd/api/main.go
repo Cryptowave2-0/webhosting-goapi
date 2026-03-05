@@ -6,6 +6,7 @@ import (
 	"database/sql"
 
 	"github.com/go-chi/chi"
+	"github.com/go-chi/cors"
 	"github.com/Cryptowave2-0/webhosting-goapi/internal/handlers"
 	"github.com/Cryptowave2-0/webhosting-goapi/internal/auth"
 	log "github.com/sirupsen/logrus"
@@ -15,6 +16,13 @@ import (
 func main() {
 	log.SetReportCaller(true)
 	var r *chi.Mux = chi.NewRouter()
+
+	r.Use(cors.Handler(cors.Options{
+		AllowedOrigins:   []string{"http://127.0.0.1:5500", "http://localhost:5500"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	}))
 
 	db, err := sql.Open("sqlite3", "app.db")
 	if err != nil {

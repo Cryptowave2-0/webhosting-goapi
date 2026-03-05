@@ -70,8 +70,9 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		Name:     "session_token",
 		Value:    token,
 		Path:     "/",
-		HttpOnly: true,
-		Secure:   false,
+		HttpOnly: false,
+		SameSite: http.SameSiteNoneMode,
+		Secure:   true,
 	})
 
 	w.Write([]byte("Logged in : "+ token))
