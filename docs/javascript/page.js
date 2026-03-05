@@ -1,7 +1,6 @@
 function login_page() {
   return `
     <div>
-
         <label for="username">
             Username:
         </label>
