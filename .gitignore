@@ -1,3 +1,5 @@
 .gitignore
 /dev_test/
 /cmd/dockertest/
+/docs/javascript/config.js
+*.db
