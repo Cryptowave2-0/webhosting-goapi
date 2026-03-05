@@ -288,6 +288,40 @@ go run ../cmd/api
 
     ---
 
+- get script executions:
+  
+    ```bash
+        curl http://127.0.0.1:8000/scripts/SCRIPT_ID/executions -b cookies.txt
+    ```
+
+    response:
+
+    ```json
+        [
+            {
+                "id": "d3fa3368-de0a-4f2e-837d-74baa42a6798",
+                "status": "success",
+                "exit_code": 0,
+                "started_at": "2026-03-03T22:52:18Z",
+                "finished_at": "2026-03-03T22:52:21Z"
+            },
+            {
+                "id": "a1bc2345-de0a-4f2e-837d-74baa42a6798",
+                "status": "failed",
+                "exit_code": 1,
+                "started_at": "2026-03-03T22:50:10Z",
+                "finished_at": "2026-03-03T22:50:11Z"
+            },
+            {
+                "id": "f9ea1234-de0a-4f2e-837d-74baa42a6798",
+                "status": "running",
+                "exit_code": null,
+                "started_at": "2026-03-03T22:55:00Z",
+                "finished_at": null
+            }
+        ]
+    ```
+
 - get script execution state:
 
     ```bash

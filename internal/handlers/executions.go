@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"path/filepath"
 	"strings"
@@ -16,12 +15,17 @@ import (
 	"github.com/docker/docker/client"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
+
+    "bytes"
+    "github.com/docker/docker/pkg/stdcopy"
 )
 
 // RunScriptHandler — POST /scripts/{id}/run
 func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int)
 	scriptID := chi.URLParam(r, "id")
+
+	fmt.Println("▶ RunScript userID:", userID, "scriptID:", scriptID)
 
 	// Récupérer le script
 	type Script struct {
@@ -36,9 +40,12 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 		scriptID, userID,
 	).Scan(&script.DockerImage, &script.FilePath, &script.Language, &script.Entrypoint)
 	if err != nil {
+        fmt.Println("❌ Script not found:", err)  // ← ici
 		http.Error(w, "Script not found", http.StatusNotFound)
 		return
 	}
+
+	fmt.Println("✅ Script trouvé:", script)  // ← et ici
 
 	// Créer l'exécution en base
 	executionID := uuid.New().String()
@@ -47,6 +54,7 @@ func RunScriptHandler(w http.ResponseWriter, r *http.Request) {
 		executionID, scriptID, userID, time.Now().UTC().Format(time.RFC3339),
 	)
 	if err != nil {
+        fmt.Println("❌ Insert execution error:", err)  // ← et ici
 		api.InternalErrorHandler(w)
 		return
 	}
@@ -67,7 +75,7 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
 	ctx := context.Background()
 
 	cli, err := client.NewClientWithOpts(
-		client.WithHost("npipe:////./pipe/docker_engine"),
+		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
@@ -76,6 +84,9 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
 		updateExecution(executionID, "failed", -1)
 		return
 	}
+
+	ping, err := cli.Ping(context.Background())
+	fmt.Println("✅ Docker ping:", ping, err)  // ← et ici
 	defer cli.Close()
 
 	// Commande via l'entrypoint
@@ -132,10 +143,16 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
 	})
 	if err == nil {
 		defer out.Close()
-		content, _ := io.ReadAll(out)
-		// Docker préfixe chaque ligne avec 8 bytes de header stream
-		// On sépare stdout/stderr simplement en stockant tout
-		storeLogs(executionID, "stdout", cleanDockerLogs(string(content)))
+		var stdout, stderr bytes.Buffer
+
+    	stdcopy.StdCopy(&stdout, &stderr, out)
+		
+		if stdout.Len() > 0 {
+			storeLogs(executionID, "stdout", stdout.String())
+		}
+		if stderr.Len() > 0 {
+			storeLogs(executionID, "stderr", stderr.String())
+		}
 	}
 
 	// Nettoyer le conteneur

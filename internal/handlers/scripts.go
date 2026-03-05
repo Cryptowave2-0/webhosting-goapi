@@ -272,6 +272,7 @@ func GetScriptHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int)
 	scriptID := chi.URLParam(r, "id")
 
+
 	type ScriptDetail struct {
 		ID          string      `json:"id"`
 		Name        string      `json:"name"`
@@ -291,6 +292,7 @@ func GetScriptHandler(w http.ResponseWriter, r *http.Request) {
 	).Scan(&s.ID, &s.Name, &s.Description, &s.Language, &s.DockerImage, &dirPath, &s.Entrypoint, &s.CreatedAt)
 
 	if err != nil {
+        fmt.Println("❌ Scan script error:", err)  // ← et ici
 		http.Error(w, "Script not found", http.StatusNotFound)
 		return
 	}
@@ -321,4 +323,43 @@ func DeleteScriptHandler(w http.ResponseWriter, r *http.Request) {
 	db.Exec(`DELETE FROM scripts WHERE id = ?`, scriptID)
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func GetScriptExecutionsHandler(w http.ResponseWriter, r *http.Request) {
+    userID := r.Context().Value(middleware.UserIDKey).(int)
+    scriptID := chi.URLParam(r, "id")
+
+    type Execution struct {
+        ID         string `json:"id"`
+        Status     string `json:"status"`
+        ExitCode   *int   `json:"exit_code"`
+        StartedAt  string `json:"started_at"`
+        FinishedAt *string `json:"finished_at"`
+    }
+
+    rows, err := db.Query(
+        `SELECT id, status, exit_code, started_at, finished_at 
+         FROM executions WHERE script_id = ? AND user_id = ?
+         ORDER BY started_at DESC`,
+        scriptID, userID,
+    )
+    if err != nil {
+        http.Error(w, "Erreur serveur", http.StatusInternalServerError)
+        return
+    }
+    defer rows.Close()
+
+    executions := []Execution{}
+    for rows.Next() {
+        var e Execution
+        err := rows.Scan(&e.ID, &e.Status, &e.ExitCode, &e.StartedAt, &e.FinishedAt)
+        if err != nil {
+            http.Error(w, "Erreur lecture", http.StatusInternalServerError)
+            return
+        }
+        executions = append(executions, e)
+    }
+
+    w.Header().Set("Content-Type", "application/json")
+    json.NewEncoder(w).Encode(executions)
 }
