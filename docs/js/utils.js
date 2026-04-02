@@ -8,7 +8,7 @@ const Utils = {
     // Vérifie si on est connecté via un cookie visible ou un flag localStorage
     const loggedIn = localStorage.getItem("orbit_logged_in");
     if (!loggedIn) {
-      window.location.href = "/login.html";
+      window.location.href = "/webhosting-goapi/login";
       return false;
     }
     return true;
@@ -17,7 +17,7 @@ const Utils = {
   requireGuest() {
     const loggedIn = localStorage.getItem("orbit_logged_in");
     if (loggedIn) {
-      window.location.href = "/dashboard.html";
+      window.location.href = "/webhosting-goapi/dashboard";
       return false;
     }
     return true;
