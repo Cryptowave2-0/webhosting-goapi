@@ -1,6 +1,6 @@
 # web hosting - Go api
 
-There is a web script hosting coded in Go language.
+There is a web script hosting coded in Go language. It now have a github page sit web totally made by AI for now. May be rebuild myself later.
 
 ## database ( sqlite )
 

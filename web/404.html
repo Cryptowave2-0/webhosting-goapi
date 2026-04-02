@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ORBIT — 404</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .error-box {
+      text-align: center;
+    }
+
+    .error-code {
+      font-family: var(--font-display);
+      font-size: 100px;
+      font-weight: 900;
+      color: var(--text-faint);
+      line-height: 1;
+      letter-spacing: 8px;
+    }
+
+    .error-msg {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--text-dim);
+      margin: 16px 0 32px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="starfield"></div>
+  <div class="error-box" style="position:relative;z-index:1">
+    <div class="error-code">404</div>
+    <p class="error-msg">Page introuvable dans l'orbite</p>
+    <a href="./" class="btn btn-primary">← Retour à l'accueil</a>
+  </div>
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+</body>
+
+</html>

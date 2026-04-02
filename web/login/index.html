@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ORBIT — Connexion</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    body { display: flex; flex-direction: column; min-height: 100vh; }
+
+    .login-page {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      position: relative; z-index: 1;
+    }
+
+    .login-box {
+      width: 100%; max-width: 400px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: 0 24px 80px #000000aa, 0 0 80px var(--accent-glow);
+      animation: slideUp .35s ease both;
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .login-logo .logo-text {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 900;
+      letter-spacing: 8px;
+      color: var(--accent);
+      text-shadow: 0 0 30px var(--accent);
+    }
+
+    .login-logo .logo-sub {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 3px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      text-transform: uppercase;
+    }
+
+    .login-form { display: flex; flex-direction: column; gap: 18px; }
+
+    .login-separator {
+      text-align: center;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--text-faint);
+      margin: 4px 0;
+    }
+
+    .btn-login-full {
+      width: 100%;
+      justify-content: center;
+      padding: 12px;
+      font-family: var(--font-display);
+      font-size: 13px;
+      letter-spacing: 2px;
+    }
+
+    .login-back {
+      text-align: center;
+      margin-top: 16px;
+      font-size: 12px;
+      color: var(--text-dim);
+    }
+
+    .error-msg {
+      background: #ff335515;
+      border: 1px solid #ff335533;
+      border-radius: var(--radius);
+      color: var(--red);
+      font-size: 13px;
+      padding: 10px 14px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="starfield"></div>
+
+  <!-- Navbar minimale -->
+  <nav>
+    <div class="nav-brand" onclick="Utils.go('../')" style="cursor:pointer">
+      <span class="brand-dot"></span>
+      ORBIT
+    </div>
+    <ul class="nav-links">
+      <li><a href="../">Accueil</a></li>
+    </ul>
+    <div></div>
+  </nav>
+
+  <div class="login-page">
+    <div class="login-box">
+      <div class="login-logo">
+        <div class="logo-text">ORBIT</div>
+        <div class="logo-sub">Script Hosting Platform</div>
+      </div>
+
+      <div class="login-form">
+        <div class="form-group">
+          <label class="form-label">Identifiant</label>
+          <input class="form-input" id="username" type="text"
+                 placeholder="nom d'utilisateur" autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Mot de passe</label>
+          <input class="form-input" id="password" type="password"
+                 placeholder="••••••••••" autocomplete="current-password" />
+        </div>
+
+        <div class="error-msg" id="error-msg"></div>
+
+        <button class="btn btn-primary btn-login-full" id="btn-submit" onclick="doLogin()">
+          ◉ &nbsp;CONNEXION
+        </button>
+      </div>
+
+      <div class="login-back">
+        <a href="../" style="color:var(--text-dim)">← Retour à l'accueil</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/utils.js"></script>
+  <script>
+    // Redirect si déjà connecté
+    if (Utils.isLoggedIn()) Utils.go("../dashboard");
+
+    // Enter key support
+    document.addEventListener("keydown", e => {
+      if (e.key === "Enter") doLogin();
+    });
+
+    async function doLogin() {
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+      const errEl = document.getElementById("error-msg");
+      const btn = document.getElementById("btn-submit");
+
+      errEl.style.display = "none";
+
+      if (!username || !password) {
+        showError("Veuillez remplir tous les champs.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner"></span> Connexion...`;
+
+      try {
+        await API.login(username, password);
+        Utils.setLoggedIn(username);
+        Utils.toast("Bienvenue, " + username + " !", "success");
+        setTimeout(() => Utils.go("../dashboard"), 600);
+      } catch (err) {
+        showError(err.message || "Identifiants incorrects.");
+        btn.disabled = false;
+        btn.innerHTML = `◉ &nbsp;CONNEXION`;
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById("error-msg");
+      el.textContent = "✕  " + msg;
+      el.style.display = "block";
+    }
+  </script>
+</body>
+</html>

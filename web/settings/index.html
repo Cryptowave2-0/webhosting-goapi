@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ORBIT — Paramètres</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <style>
+    .page-body { padding: 40px 0 80px; }
+
+    .settings-layout {
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 32px;
+    }
+    @media (max-width: 700px) { .settings-layout { grid-template-columns: 1fr; } }
+
+    /* ── Sidebar nav ─────────────────────────────────────── */
+    .settings-nav { display: flex; flex-direction: column; gap: 4px; }
+    .settings-nav-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px 14px;
+      border-radius: var(--radius);
+      color: var(--text-main);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background var(--transition), color var(--transition);
+      border: 1px solid transparent;
+    }
+    .settings-nav-item:hover { background: var(--bg-hover); color: var(--text-bright); }
+    .settings-nav-item.active {
+      background: var(--bg-hover);
+      color: var(--accent);
+      border-color: var(--border-lit);
+    }
+
+    /* ── Settings panels ─────────────────────────────────── */
+    .settings-panel { display: none; }
+    .settings-panel.active { display: block; }
+
+    .settings-title {
+      font-family: var(--font-display);
+      font-size: 16px;
+      letter-spacing: 2px;
+      color: var(--text-bright);
+      margin-bottom: 24px;
+    }
+
+    .setting-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 0;
+      border-bottom: 1px solid var(--border);
+      gap: 16px;
+    }
+    .setting-row:last-child { border-bottom: none; }
+
+    .setting-info { flex: 1; }
+    .setting-label {
+      font-size: 14px;
+      color: var(--text-bright);
+      font-weight: 500;
+      margin-bottom: 3px;
+    }
+    .setting-desc { font-size: 12px; color: var(--text-dim); }
+    .setting-control { flex-shrink: 0; min-width: 120px; display: flex; justify-content: flex-end; }
+
+    /* ── Color picker ────────────────────────────────────── */
+    .color-picker-wrap {
+      display: flex; align-items: center; gap: 10px;
+    }
+    .color-preview {
+      width: 32px; height: 32px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border-lit);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    input[type="color"] {
+      opacity: 0; position: absolute; width: 0; height: 0;
+    }
+
+    /* ── Accent presets ──────────────────────────────────── */
+    .accent-presets { display: flex; gap: 8px; }
+    .accent-preset {
+      width: 24px; height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .accent-preset:hover, .accent-preset.selected {
+      border-color: white;
+      transform: scale(1.15);
+    }
+
+    /* ── Range value display ─────────────────────────────── */
+    .range-wrap { display: flex; flex-direction: column; gap: 6px; width: 160px; }
+    .range-val { text-align: right; font-family: var(--font-mono); font-size: 12px; color: var(--accent); }
+
+    /* ── About section ───────────────────────────────────── */
+    .about-block {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 24px;
+      display: flex; flex-direction: column; gap: 12px;
+    }
+    .about-name {
+      font-family: var(--font-display);
+      font-size: 24px;
+      letter-spacing: 4px;
+      color: var(--accent);
+      text-shadow: 0 0 20px var(--accent);
+    }
+    .kv-row { display: flex; gap: 12px; font-family: var(--font-mono); font-size: 12px; }
+    .kv-key { color: var(--text-dim); width: 120px; flex-shrink: 0; }
+    .kv-val { color: var(--text-main); }
+
+    /* ── Saved indicator ─────────────────────────────────── */
+    .save-indicator {
+      position: fixed; top: 80px; right: 24px; z-index: 50;
+      background: var(--bg-panel);
+      border: 1px solid var(--green);
+      border-radius: var(--radius);
+      padding: 8px 16px;
+      font-size: 12px;
+      color: var(--green);
+      font-family: var(--font-mono);
+      opacity: 0;
+      transform: translateY(-8px);
+      transition: opacity .3s, transform .3s;
+      pointer-events: none;
+    }
+    .save-indicator.show { opacity: 1; transform: translateY(0); }
+  </style>
+</head>
+<body>
+  <div class="starfield"></div>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-brand" onclick="Utils.go('../')" style="cursor:pointer">
+      <span class="brand-dot"></span>
+      ORBIT
+    </div>
+    <ul class="nav-links">
+      <li><a href="../">Accueil</a></li>
+      <li><a href="../dashboard">Dashboard</a></li>
+      <li><a href="../settings" class="active">Paramètres</a></li>
+    </ul>
+    <div class="nav-actions">
+      <span style="color:var(--text-dim);font-size:12px;margin-right:8px" id="nav-username"></span>
+    </div>
+  </nav>
+
+  <div class="save-indicator" id="save-ind">✓ Préférences sauvegardées</div>
+
+  <div class="page">
+    <div class="container page-body">
+
+      <div class="breadcrumb" style="font-family:var(--font-mono);font-size:12px;color:var(--text-dim);margin-bottom:28px">
+        <a href="../" style="color:var(--text-dim)">ORBIT</a>
+        <span style="color:var(--text-faint)"> / </span>
+        <span>Paramètres</span>
+      </div>
+
+      <div class="settings-layout">
+
+        <!-- Sidebar -->
+        <div>
+          <nav class="settings-nav">
+            <div class="settings-nav-item active" onclick="showPanel('appearance')">
+              🎨 &nbsp;Apparence
+            </div>
+            <div class="settings-nav-item" onclick="showPanel('terminal')">
+              ⌨️ &nbsp;Terminal
+            </div>
+            <div class="settings-nav-item" onclick="showPanel('about')">
+              ℹ️ &nbsp;À propos
+            </div>
+          </nav>
+        </div>
+
+        <!-- Content -->
+        <div>
+
+          <!-- Panel: Apparence -->
+          <div class="settings-panel active" id="panel-appearance">
+            <div class="settings-title">Apparence</div>
+            <div class="card">
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Luminosité</div>
+                  <div class="setting-desc">Ajuste la luminosité globale de l'interface</div>
+                </div>
+                <div class="setting-control">
+                  <div class="range-wrap">
+                    <div class="range-val" id="brightness-val">100%</div>
+                    <input type="range" class="form-range" id="brightness"
+                           min="40" max="120" step="5" value="100"
+                           oninput="onBrightness(this.value)" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Couleur d'accent</div>
+                  <div class="setting-desc">Couleur principale de l'interface</div>
+                </div>
+                <div class="setting-control">
+                  <div style="display:flex;flex-direction:column;align-items:flex-end;gap:10px">
+                    <div class="accent-presets" id="accent-presets">
+                      <!-- Injecté par JS -->
+                    </div>
+                    <div class="color-picker-wrap">
+                      <div class="color-preview" id="color-preview" onclick="document.getElementById('color-input').click()"></div>
+                      <input type="color" id="color-input" oninput="onAccentCustom(this.value)" />
+                      <span style="font-size:11px;font-family:var(--font-mono);color:var(--text-dim)" id="color-hex">#00d4ff</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Mode compact</div>
+                  <div class="setting-desc">Réduit les espaces et la taille des éléments</div>
+                </div>
+                <div class="setting-control">
+                  <label class="form-toggle">
+                    <input type="checkbox" id="toggle-compact" onchange="onCompact(this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Animations</div>
+                  <div class="setting-desc">Active ou désactive les transitions et animations</div>
+                </div>
+                <div class="setting-control">
+                  <label class="form-toggle">
+                    <input type="checkbox" id="toggle-anim" checked onchange="onAnimations(this.checked)" />
+                    <span class="toggle-slider"></span>
+                  </label>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Panel: Terminal -->
+          <div class="settings-panel" id="panel-terminal">
+            <div class="settings-title">Terminal</div>
+            <div class="card">
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Police du terminal</div>
+                  <div class="setting-desc">Choisissez la police pour les logs et le terminal</div>
+                </div>
+                <div class="setting-control">
+                  <select class="form-input" id="terminal-font" onchange="onTerminalFont(this.value)"
+                          style="width:160px;font-size:13px">
+                    <option value="JetBrains Mono">JetBrains Mono</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="monospace">Monospace (défaut)</option>
+                    <option value="'Fira Code', monospace">Fira Code</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="setting-row">
+                <div class="setting-info">
+                  <div class="setting-label">Aperçu terminal</div>
+                  <div class="setting-desc">Voici à quoi ressembleront les logs</div>
+                </div>
+                <div></div>
+              </div>
+
+              <!-- Terminal preview -->
+              <div class="terminal" style="margin-top:0">
+                <div class="terminal-header">
+                  <div class="terminal-dots"><span class="td-r"></span><span class="td-y"></span><span class="td-g"></span></div>
+                  <span class="terminal-title">aperçu</span>
+                  <span></span>
+                </div>
+                <div class="terminal-body" style="height:140px" id="term-preview">
+                  <div class="log-line stdout"><span class="log-stream">[stdout]</span><span class="log-content">Hello from Docker!</span><span class="log-time">12:34:56</span></div>
+                  <div class="log-line stdout"><span class="log-stream">[stdout]</span><span class="log-content">Step 1/3 completed.</span><span class="log-time">12:34:57</span></div>
+                  <div class="log-line stderr"><span class="log-stream">[stderr]</span><span class="log-content">Warning: deprecated API</span><span class="log-time">12:34:58</span></div>
+                  <div class="log-line stdout"><span class="log-stream">[stdout]</span><span class="log-content">Process exited with code 0.</span><span class="log-time">12:34:59</span></div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Panel: À propos -->
+          <div class="settings-panel" id="panel-about">
+            <div class="settings-title">À propos</div>
+
+            <div class="about-block">
+              <div class="about-name">ORBIT</div>
+              <p style="font-size:13px;color:var(--text-main);max-width:400px">
+                Plateforme d'hébergement de scripts web. Exécutez vos scripts Python, Bash et Node.js
+                depuis n'importe où, en temps réel, dans des conteneurs Docker isolés.
+              </p>
+              <div class="divider" style="margin:4px 0"></div>
+              <div class="kv-row"><span class="kv-key">Version</span><span class="kv-val" id="about-version">—</span></div>
+              <div class="kv-row"><span class="kv-key">API URL</span><span class="kv-val" id="about-api">—</span></div>
+              <div class="kv-row"><span class="kv-key">Auteur</span><span class="kv-val">planet_edit</span></div>
+              <div class="kv-row"><span class="kv-key">Backend</span><span class="kv-val">Go + SQLite + Docker</span></div>
+              <div class="kv-row"><span class="kv-key">Frontend</span><span class="kv-val">Vanilla JS — Aucun framework</span></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="card" style="border-color:#ff335533">
+              <p class="section-title" style="color:var(--red)">Réinitialisation</p>
+              <div class="setting-row" style="border:none;padding:0">
+                <div class="setting-info">
+                  <div class="setting-label">Réinitialiser les préférences</div>
+                  <div class="setting-desc">Remet toutes les préférences à leur valeur par défaut</div>
+                </div>
+                <button class="btn btn-danger btn-sm" onclick="resetPrefs()">Réinitialiser</button>
+              </div>
+            </div>
+
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/utils.js"></script>
+  <script>
+    document.getElementById("nav-username").textContent = Utils.getUsername();
+    document.getElementById("about-version").textContent = CONFIG.VERSION;
+    document.getElementById("about-api").textContent = CONFIG.API_URL;
+
+    // ── Présets de couleurs ────────────────────────────────
+    const ACCENT_PRESETS = [
+      "#00d4ff", "#00ff88", "#ff6b35", "#cc88ff", "#ffcc00", "#ff3366", "#ffffff",
+    ];
+
+    let prefs = Utils.getPrefs();
+
+    function initUI() {
+      // Brightness
+      document.getElementById("brightness").value = prefs.brightness;
+      document.getElementById("brightness-val").textContent = prefs.brightness + "%";
+
+      // Accent presets
+      const wrap = document.getElementById("accent-presets");
+      wrap.innerHTML = ACCENT_PRESETS.map(c => `
+        <div class="accent-preset ${c === prefs.accentColor ? 'selected' : ''}"
+             style="background:${c}"
+             onclick="onAccentPreset('${c}', this)"
+             title="${c}"></div>
+      `).join("");
+
+      // Color preview
+      document.getElementById("color-preview").style.background = prefs.accentColor;
+      document.getElementById("color-hex").textContent = prefs.accentColor;
+      document.getElementById("color-input").value = prefs.accentColor;
+
+      // Toggles
+      document.getElementById("toggle-compact").checked = prefs.compactMode;
+      document.getElementById("toggle-anim").checked = prefs.animationsEnabled;
+
+      // Terminal font
+      document.getElementById("terminal-font").value = prefs.terminalFont;
+      applyTerminalFont(prefs.terminalFont);
+    }
+
+    function save() {
+      Utils.savePrefs(prefs);
+      const ind = document.getElementById("save-ind");
+      ind.classList.add("show");
+      clearTimeout(save._t);
+      save._t = setTimeout(() => ind.classList.remove("show"), 2000);
+    }
+
+    // ── Handlers ──────────────────────────────────────────
+    function onBrightness(v) {
+      prefs.brightness = parseInt(v);
+      document.getElementById("brightness-val").textContent = v + "%";
+      save();
+    }
+
+    function onAccentPreset(color, el) {
+      prefs.accentColor = color;
+      document.querySelectorAll(".accent-preset").forEach(e => e.classList.remove("selected"));
+      el.classList.add("selected");
+      document.getElementById("color-preview").style.background = color;
+      document.getElementById("color-hex").textContent = color;
+      document.getElementById("color-input").value = color;
+      save();
+    }
+
+    function onAccentCustom(color) {
+      prefs.accentColor = color;
+      document.getElementById("color-preview").style.background = color;
+      document.getElementById("color-hex").textContent = color;
+      document.querySelectorAll(".accent-preset").forEach(e => e.classList.remove("selected"));
+      save();
+    }
+
+    function onCompact(v) {
+      prefs.compactMode = v;
+      save();
+    }
+
+    function onAnimations(v) {
+      prefs.animationsEnabled = v;
+      if (!v) {
+        document.documentElement.style.setProperty("--transition", "0ms");
+      } else {
+        document.documentElement.style.setProperty("--transition", "200ms cubic-bezier(.4,0,.2,1)");
+      }
+      save();
+    }
+
+    function onTerminalFont(font) {
+      prefs.terminalFont = font;
+      applyTerminalFont(font);
+      save();
+    }
+
+    function applyTerminalFont(font) {
+      document.getElementById("term-preview").style.fontFamily = font;
+    }
+
+    function resetPrefs() {
+      if (!confirm("Réinitialiser toutes les préférences ?")) return;
+      localStorage.removeItem("orbit_prefs");
+      prefs = Utils.getPrefs();
+      initUI();
+      Utils.applyPrefs(prefs);
+      Utils.toast("Préférences réinitialisées.", "info");
+    }
+
+    // ── Panel navigation ──────────────────────────────────
+    function showPanel(name) {
+      document.querySelectorAll(".settings-panel").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".settings-nav-item").forEach(el => el.classList.remove("active"));
+      document.getElementById("panel-" + name).classList.add("active");
+      event.currentTarget.classList.add("active");
+    }
+
+    initUI();
+  </script>
+</body>
+</html>

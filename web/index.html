@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ORBIT — Web Script Hosting</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    /* ── Hero ─────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative;
+    }
+
+    .hero-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 4px;
+      text-transform: uppercase;
+      color: var(--accent-dim);
+      margin-bottom: 20px;
+      animation: fadeInDown .6s ease both;
+    }
+
+    .hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(52px, 10vw, 96px);
+      font-weight: 900;
+      color: var(--text-bright);
+      letter-spacing: 8px;
+      line-height: 1;
+      margin-bottom: 16px;
+      animation: fadeInDown .7s .1s ease both;
+      position: relative;
+    }
+
+    .hero-title .glow-text {
+      color: var(--accent);
+      text-shadow: 0 0 40px var(--accent), 0 0 80px var(--accent-glow);
+    }
+
+    .hero-subtitle {
+      font-size: 17px;
+      color: var(--text-main);
+      max-width: 520px;
+      margin-bottom: 48px;
+      line-height: 1.7;
+      animation: fadeInDown .8s .2s ease both;
+    }
+
+    .hero-actions {
+      display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
+      animation: fadeInDown .9s .3s ease both;
+    }
+
+    /* ── Grid déco (lignes de grille) ────────────────────── */
+    .grid-overlay {
+      position: fixed; inset: 0; z-index: 0;
+      background-image:
+        linear-gradient(var(--text-faint) 1px, transparent 1px),
+        linear-gradient(90deg, var(--text-faint) 1px, transparent 1px);
+      background-size: 80px 80px;
+      opacity: .12;
+      mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 80%);
+      pointer-events: none;
+    }
+
+    /* Cercle décoratif central */
+    .orbit-ring {
+      position: absolute;
+      width: 500px; height: 500px;
+      border: 1px solid var(--accent-glow);
+      border-radius: 50%;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: spin 20s linear infinite;
+      z-index: 0;
+    }
+    .orbit-ring::before {
+      content: '';
+      position: absolute;
+      width: 8px; height: 8px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 12px var(--accent);
+      top: -4px; left: 50%;
+      transform: translateX(-50%);
+    }
+    .orbit-ring-2 {
+      width: 300px; height: 300px;
+      animation: spin 12s linear infinite reverse;
+      border-color: #00d4ff1a;
+    }
+
+    /* ── Features ─────────────────────────────────────────── */
+    .features {
+      position: relative; z-index: 1;
+      padding: 80px 0 120px;
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px 24px;
+      transition: border-color var(--transition), transform var(--transition);
+    }
+    .feature-card:hover {
+      border-color: var(--accent-dim);
+      transform: translateY(-3px);
+    }
+
+    .feature-icon {
+      font-size: 24px;
+      margin-bottom: 14px;
+      display: block;
+    }
+
+    .feature-title {
+      font-family: var(--font-display);
+      font-size: 12px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-bright);
+      margin-bottom: 8px;
+    }
+
+    .feature-desc {
+      font-size: 13px;
+      color: var(--text-main);
+      line-height: 1.6;
+    }
+
+    /* ── Footer ───────────────────────────────────────────── */
+    footer {
+      position: relative; z-index: 1;
+      border-top: 1px solid var(--border);
+      padding: 20px 32px;
+      display: flex; align-items: center; justify-content: space-between;
+      color: var(--text-faint);
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    /* ── Nav CTA ──────────────────────────────────────────── */
+    .nav-status {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+  <div class="starfield"></div>
+  <div class="grid-overlay"></div>
+
+  <!-- Navbar -->
+  <nav>
+    <div class="nav-brand">
+      <span class="brand-dot"></span>
+      ORBIT
+    </div>
+    <ul class="nav-links">
+      <li><a href="#" class="active">Accueil</a></li>
+      <li><a href="dashboard">Dashboard</a></li>
+      <li><a href="settings">Paramètres</a></li>
+    </ul>
+    <div class="nav-actions" id="nav-actions">
+      <!-- Injecté par JS -->
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="orbit-ring"></div>
+    <div class="orbit-ring orbit-ring-2"></div>
+
+    <p class="hero-eyebrow">▸ Web Script Hosting Platform</p>
+    <h1 class="hero-title"><span class="glow-text">ORBIT</span></h1>
+    <p class="hero-subtitle">
+      Déployez, exécutez et surveillez vos scripts Python, Bash et Node.js
+      depuis n'importe où — en temps réel, depuis votre navigateur.
+    </p>
+    <div class="hero-actions">
+      <button class="btn btn-primary btn-lg" onclick="Utils.go('login')" id="btn-login">
+        ◉ &nbsp;Se connecter
+      </button>
+      <button class="btn btn-ghost btn-lg" onclick="Utils.go('dashboard')" id="btn-dash">
+        ▸ &nbsp;Mon espace
+      </button>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="features">
+    <div class="container">
+      <p class="section-title">Fonctionnalités</p>
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🐳</span>
+          <div class="feature-title">Isolation Docker</div>
+          <p class="feature-desc">Chaque script s'exécute dans son propre conteneur isolé — Python, Bash ou Node.js.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">⚡</span>
+          <div class="feature-title">Logs en direct</div>
+          <p class="feature-desc">Flux SSE pour suivre stdout et stderr en temps réel pendant l'exécution.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📁</span>
+          <div class="feature-title">Multi-fichiers</div>
+          <p class="feature-desc">Uploadez des archives ZIP ou plusieurs fichiers — l'arborescence est préservée.</p>
+        </div>
+        <div class="feature-card">
+          <span class="feature-icon">📊</span>
+          <div class="feature-title">Historique complet</div>
+          <p class="feature-desc">Retrouvez toutes les exécutions passées, leurs logs et codes de sortie.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer>
+    <span>ORBIT v1.0 — planet_edit — site web réalisé à 100 % par claude AI.</span>
+    <span>API: <span id="api-url-display" style="color:var(--accent)"></span></span>
+  </footer>
+
+  <script src="js/config.js"></script>
+  <script src="js/utils.js"></script>
+  <script>
+    // Afficher l'URL de l'API dans le footer
+    document.getElementById("api-url-display").textContent = CONFIG.API_URL;
+
+    // Adapter la navbar selon l'état de connexion
+    const navActions = document.getElementById("nav-actions");
+    if (Utils.isLoggedIn()) {
+      navActions.innerHTML = `
+        <span style="color:var(--text-dim);font-size:13px;margin-right:6px">
+          Bonjour, <strong style="color:var(--accent)">${Utils.getUsername()}</strong>
+        </span>
+        <button class="btn btn-ghost btn-sm" onclick="Utils.go('dashboard')">Dashboard</button>
+      `;
+      document.getElementById("btn-login").style.display = "none";
+    } else {
+      document.getElementById("btn-dash").style.display = "none";
+    }
+  </script>
+</body>
+</html>
