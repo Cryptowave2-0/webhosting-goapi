@@ -1,5 +1,4 @@
 .gitignore
 dev_test/
 cmd/dockertest/
-*config.js
 *.db

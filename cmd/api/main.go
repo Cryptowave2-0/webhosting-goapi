@@ -134,6 +134,8 @@ func initDB(db *sql.DB) {
 		fmt.Println("Table 'logs' created succesfully")
 	}
 
-	db.Exec(`ALTER TABLE scripts ADD COLUMN entrypoint TEXT NOT NULL DEFAULT '';`)
-
+	_, err = db.Exec(`ALTER TABLE scripts ADD COLUMN entrypoint TEXT NOT NULL DEFAULT '';`)
+	if err != nil {
+		log.Println("entrypoint column may already exist:", err)
+	}
 }
