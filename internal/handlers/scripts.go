@@ -232,12 +232,23 @@ func buildTree(dirPath string) []TreeEntry {
 	return entries
 }
 
+func dirSize(path string) int64 {
+    var total int64
+    filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+        if err == nil && !info.IsDir() {
+            total += info.Size()
+        }
+        return nil
+    })
+    return total
+}
+
 // ListScriptsHandler — GET /scripts
 func ListScriptsHandler(w http.ResponseWriter, r *http.Request) {
 	userID := r.Context().Value(middleware.UserIDKey).(int)
 
 	rows, err := db.Query(
-		`SELECT id, name, description, language, docker_image, entrypoint, created_at FROM scripts WHERE user_id = ? ORDER BY created_at DESC`,
+		`SELECT id, name, description, language, docker_image, entrypoint, created_at, file_path FROM scripts WHERE user_id = ? ORDER BY created_at DESC`,
 		userID,
 	)
 	if err != nil {
@@ -254,12 +265,15 @@ func ListScriptsHandler(w http.ResponseWriter, r *http.Request) {
 		DockerImage string `json:"docker_image"`
 		Entrypoint  string `json:"entrypoint"`
 		CreatedAt   string `json:"created_at"`
+		SizeBytes   int64  `json:"size_bytes"`
 	}
 
 	scripts := []ScriptRow{}
 	for rows.Next() {
 		var s ScriptRow
-		rows.Scan(&s.ID, &s.Name, &s.Description, &s.Language, &s.DockerImage, &s.Entrypoint, &s.CreatedAt)
+		var dirPath string
+		rows.Scan(&s.ID, &s.Name, &s.Description, &s.Language, &s.DockerImage, &s.Entrypoint, &s.CreatedAt, &dirPath)
+		s.SizeBytes = dirSize(dirPath)
 		scripts = append(scripts, s)
 	}
 
@@ -290,6 +304,8 @@ func GetScriptHandler(w http.ResponseWriter, r *http.Request) {
 		`SELECT id, name, description, language, docker_image, file_path, entrypoint, created_at FROM scripts WHERE id = ? AND user_id = ?`,
 		scriptID, userID,
 	).Scan(&s.ID, &s.Name, &s.Description, &s.Language, &s.DockerImage, &dirPath, &s.Entrypoint, &s.CreatedAt)
+
+	fmt.Printf("DEBUG GetScript: userID=%d scriptID=%q\n", userID, scriptID)
 
 	if err != nil {
         fmt.Println("❌ Scan script error:", err)  // ← et ici

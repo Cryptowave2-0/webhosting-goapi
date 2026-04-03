@@ -326,8 +326,8 @@
         document.getElementById("stat-execs").textContent = totalExecs;
         document.getElementById("stat-running").textContent = runningCount;
 
-        // Simuler stockage (API ne l'expose pas, on estime 50 MB par script)
-        const usedMB = scripts.length * 50;
+        const usedBytes = scripts.reduce((acc, s) => acc + (s.size_bytes || 0), 0);
+        const usedMB = (usedBytes / 1024 / 1024).toFixed(1);
         const limitMB = 500;
         document.getElementById("storage-text").innerHTML =
           `<strong style="color:var(--accent)">${usedMB} MB</strong> / ${limitMB} MB`;
@@ -355,7 +355,7 @@
             : `<span style="color:var(--text-faint);font-size:12px">—</span>`;
 
           return `
-          <div class="script-item" onclick="Utils.go('../script?id=${s.id}')">
+          <div class="script-item" onclick="Utils.go('../script/?id=${s.id}')">
             <div class="script-lang-icon ${langClass[s.language] || ''}">
               ${langIcon[s.language] || "📄"}
             </div>
@@ -366,6 +366,7 @@
             <div class="script-right">
               <span class="badge badge-${s.language}">${s.language}</span>
               <span style="display:flex;align-items:center;gap:6px">${statusHtml}</span>
+              <span style="font-size:11px;color:var(--text-faint);font-family:var(--font-mono)">${Utils.formatBytes(s.size_bytes || 0)}</span>
               <span class="script-date">${formatDateShort(s.created_at)}</span>
               <span class="script-arrow">›</span>
             </div>

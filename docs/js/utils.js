@@ -43,6 +43,7 @@ const Utils = {
 
   // ── Navigation ──────────────────────────────────────────
   go(url) {
+    console.log(url)
     window.location.href = url;
   },
 

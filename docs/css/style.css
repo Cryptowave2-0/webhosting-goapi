@@ -405,7 +405,7 @@ nav {
 }
 
 /* ── File tree ────────────────────────────────────────────── */
-.tree { font-family: var(--font-mono); font-size: 13px; }
+/* .tree { font-family: var(--font-mono); font-size: 13px; }
 .tree-item {
   display: flex; align-items: center; gap: 8px;
   padding: 5px 8px;
@@ -415,7 +415,68 @@ nav {
 }
 .tree-item:hover { background: var(--bg-hover); color: var(--text-bright); }
 .tree-item .tree-icon { color: var(--accent-dim); font-size: 12px; flex-shrink: 0; }
-.tree-item .tree-size { margin-left: auto; color: var(--text-faint); font-size: 11px; }
+.tree-item .tree-size { margin-left: auto; color: var(--text-faint); font-size: 11px; } */
+
+
+.tree{
+  font-family:var(--font-mono);
+  font-size:13px;
+  user-select:none;
+}
+
+.tree-node{
+  display:flex;
+  align-items:center;
+  height:22px;
+  cursor:pointer;
+  padding:0 4px;
+  border-radius:4px;
+  white-space:nowrap;
+}
+
+.tree-node:hover{
+  background:var(--bg-hover);
+}
+
+.tree-arrow{
+  display:inline-flex;
+  width:16px;
+  height:16px;
+  align-items:center;
+  justify-content:center;
+  transition:transform .12s;
+}
+
+.tree-arrow.open{
+  transform:rotate(90deg);
+}
+
+.tree-arrow.leaf{
+  opacity:0;
+  pointer-events:none;
+}
+
+.tree-icon{
+  margin:0 4px;
+}
+
+.tree-name{
+  flex:1;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.tree-size{
+  margin-left:8px;
+  font-size:11px;
+  color:var(--text-faint);
+}
+
+.tree-children{
+  overflow:hidden;
+}
+
+
 
 /* ── Stat card ────────────────────────────────────────────── */
 .stat-card {

@@ -16,7 +16,7 @@
     @media (max-width: 700px) { .settings-layout { grid-template-columns: 1fr; } }
 
     /* ── Sidebar nav ─────────────────────────────────────── */
-    .settings-nav { display: flex; flex-direction: column; gap: 4px; }
+    .settings-nav { display: flex; flex-direction: row; gap: 4px; position: fixed; left: 50%; top: 60px; transform: translate(-50%, 0%); width: fit-content; height: fit-content; padding: 27px 0 5px 0;}
     .settings-nav-item {
       display: flex; align-items: center; gap: 10px;
       padding: 10px 14px;
@@ -26,6 +26,7 @@
       cursor: pointer;
       transition: background var(--transition), color var(--transition);
       border: 1px solid transparent;
+      z-index: 9999;
     }
     .settings-nav-item:hover { background: var(--bg-hover); color: var(--text-bright); }
     .settings-nav-item.active {

@@ -273,6 +273,7 @@
     async function loadScript() {
       try {
         const s = await API.getScript(scriptId);
+        console.log(s)
 
         document.title = `ORBIT — ${s.name}`;
         document.getElementById("bc-name").textContent = s.name;
@@ -311,22 +312,28 @@
 
         // File tree
         const tree = s.tree || [];
+        const treeContainer = document.getElementById("file-tree");
         if (tree.length === 0) {
-          document.getElementById("file-tree").innerHTML =
-            `<div style="color:var(--text-faint);font-size:12px;padding:8px">Aucun fichier listé.</div>`;
+          treeContainer.innerHTML =
+            `<div style="color:var(--text-faint);font-size:12px;padding:8px">
+              Aucun fichier listé.
+            </div>`;
         } else {
-          document.getElementById("file-tree").innerHTML =
-            tree.map(f => `
-              <div class="tree-item">
-                <span class="tree-icon">${getFileIcon(f.path)}</span>
-                <span>${escHtml(f.path)}</span>
-                <span class="tree-size">${Utils.formatBytes(f.size)}</span>
-              </div>
-            `).join("");
+          treeContainer.innerHTML = "";
+
+          const tree = buildTreeFromAPI(s.tree);
+
+          const rootEl = document.createElement("div");
+          rootEl.className = "tree";
+
+          treeContainer.appendChild(rootEl);
+
+          populateTree(rootEl, tree, 0);
         }
 
       } catch (err) {
         Utils.toast(err.message, "error");
+        console.error(err.message)
       }
     }
 
@@ -493,6 +500,106 @@
       const ext = path.split(".").pop().toLowerCase();
       const map = { py:"🐍", js:"🟨", sh:"🔧", json:"📋", txt:"📄", md:"📝", zip:"📦", req:"📦" };
       return map[ext] || "📄";
+    }
+
+    function buildTreeFromAPI(files) {
+        const root = { name: "", children: {}, files: [] };
+
+        for (const f of files) {
+          const parts = f.path.split("/");
+          let node = root;
+
+          for (let i = 0; i < parts.length - 1; i++) {
+            const seg = parts[i];
+            if (!node.children[seg]) {
+              node.children[seg] = { name: seg, children: {}, files: [] };
+            }
+            node = node.children[seg];
+          }
+
+          node.files.push({
+            name: parts[parts.length - 1],
+            size: f.size || 0
+          });
+        }
+
+        return root;
+      }
+
+    function renderNode(name, depth, isFile, size) {
+      const el = document.createElement("div");
+
+      const row = document.createElement("div");
+      row.className = "tree-node";
+      row.style.paddingLeft = (depth * 16) + "px";
+
+      const arrow = document.createElement("span");
+      arrow.className = "tree-arrow" + (isFile ? " leaf" : "");
+      arrow.innerHTML = isFile ? "" : `
+        <svg width="10" height="10" viewBox="0 0 10 10">
+          <path d="M3 2l4 3-4 3" stroke="currentColor" stroke-width="1.5" fill="none"
+          stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      const icon = document.createElement("span");
+      icon.className = "tree-icon";
+      icon.textContent = isFile ? getFileIcon(name) : "📁";
+
+      const label = document.createElement("span");
+      label.className = "tree-name";
+      label.textContent = name;
+
+      row.appendChild(arrow);
+      row.appendChild(icon);
+      row.appendChild(label);
+
+      if (isFile && size > 0) {
+        const sz = document.createElement("span");
+        sz.className = "tree-size";
+        sz.textContent = Utils.formatBytes(size);
+        row.appendChild(sz);
+      }
+
+      el.appendChild(row);
+
+      if (!isFile) {
+        const children = document.createElement("div");
+        children.className = "tree-children";
+        children.style.display = "none";
+
+        el.appendChild(children);
+
+        let open = false;
+        row.onclick = () => {
+          open = !open;
+          arrow.classList.toggle("open", open);
+          children.style.display = open ? "block" : "none";
+        };
+
+        el._children = children;
+      }
+
+      return el;
+    }
+
+    function populateTree(domNode, treeNode, depth) {
+      const folders = Object.keys(treeNode.children).sort();
+
+      for (const key of folders) {
+        const child = treeNode.children[key];
+        const el = renderNode(key, depth, false, 0);
+
+        domNode.appendChild(el);
+        populateTree(el._children, child, depth + 1);
+      }
+
+      const files = [...treeNode.files].sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const f of files) {
+        const el = renderNode(f.name, depth, true, f.size);
+        domNode.appendChild(el);
+      }
     }
 
     // ── Init ─────────────────────────────────────────────────

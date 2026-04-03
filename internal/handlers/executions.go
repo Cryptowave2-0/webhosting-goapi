@@ -148,10 +148,20 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
     	stdcopy.StdCopy(&stdout, &stderr, out)
 		
 		if stdout.Len() > 0 {
-			storeLogs(executionID, "stdout", stdout.String())
+			for _, line := range strings.Split(stdout.String(), "\n") {
+				line = strings.TrimRight(line, "\r")
+				if line != "" {
+					storeLogs(executionID, "stdout", line)
+				}
+			}
 		}
 		if stderr.Len() > 0 {
-			storeLogs(executionID, "stderr", stderr.String())
+			for _, line := range strings.Split(stderr.String(), "\n") {
+				line = strings.TrimRight(line, "\r")
+				if line != "" {
+					storeLogs(executionID, "stderr", line)
+				}
+			}
 		}
 	}
 
