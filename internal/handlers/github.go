@@ -26,7 +26,7 @@ func gitAuth(token string) *githttp.BasicAuth {
 		return nil
 	}
 	return &githttp.BasicAuth{
-		Username: "x-token", // GitHub ignore le username avec un PAT
+		Username: "git", // GitHub ignore le username avec un PAT
 		Password: token,
 	}
 }
@@ -81,27 +81,43 @@ func getLatestRemoteSHA(repoURL, token string) (string, error) {
 
 // pullRepo effectue un git pull sur un repo déjà cloné
 func pullRepo(dirPath, token string) (bool, error) {
-	repo, err := gogit.PlainOpen(dirPath)
-	if err != nil {
-		return false, fmt.Errorf("not a git repo: %w", err)
-	}
+    repo, err := gogit.PlainOpen(dirPath)
+    if err != nil {
+        return false, fmt.Errorf("not a git repo: %w", err)
+    }
 
-	wt, err := repo.Worktree()
-	if err != nil {
-		return false, err
-	}
+    wt, err := repo.Worktree()
+    if err != nil {
+        return false, err
+    }
 
-	err = wt.Pull(&gogit.PullOptions{
-		Auth:  gitAuth(token),
-		Force: false,
-	})
-	if err == gogit.NoErrAlreadyUpToDate {
-		return false, nil // pas de changement
-	}
-	if err != nil {
-		return false, err
-	}
-	return true, nil // des changements ont été tirés
+    // Tentative 1 : Avec Auth
+    err = wt.Pull(&gogit.PullOptions{
+        Auth:  gitAuth(token),
+        Force: false,
+    })
+
+    // Tentative 2 : Si erreur d'auth, on réessaie sans Auth (pour les repos publics)
+    if err != nil && isAuthError(err) {
+        fmt.Println("⚠️ Pull auth failed, retrying without credentials...")
+        err = wt.Pull(&gogit.PullOptions{
+            Force: false,
+        })
+    }
+
+    if err == gogit.NoErrAlreadyUpToDate {
+        return false, nil
+    }
+    if err != nil {
+        return false, err
+    }
+    return true, nil
+}
+
+// Helper pour détecter les erreurs d'authentification
+func isAuthError(err error) bool {
+    msg := strings.ToLower(err.Error())
+    return strings.Contains(msg, "auth") || strings.Contains(msg, "credentials") || strings.Contains(msg, "denied")
 }
 
 // ── GithubCloneHandler — POST /scripts/{id}/github/clone ────────────────────
@@ -137,6 +153,9 @@ func GithubCloneHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "No GitHub URL configured", http.StatusBadRequest)
 		return
 	}
+	if !strings.HasSuffix(cloneURL, ".git") {
+		cloneURL += ".git"
+	}
 
 	// Vider le dossier et recloner
 	os.RemoveAll(dirPath)
@@ -145,10 +164,25 @@ func GithubCloneHandler(w http.ResponseWriter, r *http.Request) {
 	_, err = gogit.PlainClone(dirPath, false, &gogit.CloneOptions{
 		URL:      cloneURL,
 		Auth:     gitAuth(token),
-		Progress: os.Stdout,
+		Progress: os.Stdout, // Vérifie tes logs serveurs, le progrès s'affichera ici
 	})
+	// Si ça échoue à cause de l'auth, on réessaie sans rien (cas du repo public)
+	if err != nil && (strings.Contains(err.Error(), "auth") || strings.Contains(err.Error(), "authentication")) {
+		fmt.Println("⚠️ Auth failed, retrying without credentials (public repo?)...")
+		
+		// On nettoie le dossier qui a commencé à être créé
+		os.RemoveAll(dirPath)
+		os.MkdirAll(dirPath, 0755)
+
+		// Tentative 2 : Sans Authentification
+		_, err = gogit.PlainClone(dirPath, false, &gogit.CloneOptions{
+			URL:      cloneURL,
+			Progress: os.Stdout,
+		})
+	}
+
 	if err != nil {
-		http.Error(w, fmt.Sprintf("Clone failed: %s", err.Error()), http.StatusInternalServerError)
+		http.Error(w, fmt.Sprintf("Clone failed after retry: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 

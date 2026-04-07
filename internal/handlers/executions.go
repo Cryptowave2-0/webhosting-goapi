@@ -93,15 +93,51 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
 	containerEntry := "/app/" + entrypoint
 	var cmd []string
 	switch language {
-	case "python":
-		cmd = []string{"python", "-u", containerEntry}
-	case "bash":
-		cmd = []string{"bash", containerEntry}
-	case "nodejs", "js":
-		cmd = []string{"node", containerEntry}
-	default:
-		cmd = []string{"sh", containerEntry}
-	}
+		case "python":
+			// 1. On crée le dossier libs s'il n'existe pas (--parents)
+			// 2. On génère le hash du requirements.txt actuel
+			// 3. On compare avec l'ancien hash (.req.hash)
+			// 4. Si différent, on installe dans /app/libs et on met à jour le hash
+			cmd = []string{"sh", "-c", `
+				mkdir -p /app/libs &&
+				if [ -f requirements.txt ]; then
+					md5sum requirements.txt > .tmp_hash;
+					if ! diff -q .tmp_hash /app/libs/.req.hash > /dev/null 2>&1; then
+						echo "📦 Installation des dépendances Python..." &&
+						pip install --target=/app/libs -r requirements.txt &&
+						mv .tmp_hash /app/libs/.req.hash;
+					else
+						echo "✅ Dépendances à jour (cache utilisé)";
+						rm .tmp_hash;
+					fi
+				fi &&
+				export PYTHONPATH=$PYTHONPATH:/app/libs &&
+				python -u ` + containerEntry}
+
+		case "nodejs", "js":
+			// Pour Node.js, on stocke le hash à la racine car node_modules est déjà au bon endroit
+			cmd = []string{"sh", "-c", `
+				if [ -f package.json ]; then
+					md5sum package.json > .tmp_hash;
+					if ! diff -q .tmp_hash .pkg.hash > /dev/null 2>&1; then
+						echo "📦 Installation des modules Node.js..." &&
+						npm install &&
+						mv .tmp_hash .pkg.hash;
+					else
+						echo "✅ Modules à jour (cache utilisé)";
+						rm .tmp_hash;
+					fi
+				fi &&
+				node ` + containerEntry}
+
+		case "bash":
+			// Pour Bash, on force l'exécutabilité avant de lancer
+			cmd = []string{"sh", "-c", "chmod +x " + containerEntry + " && ./" + containerEntry}
+
+		default:
+			// Par défaut, on tente de lancer avec sh
+			cmd = []string{"sh", containerEntry}
+		}
 
 	// Monter tout le dossier dans /app/
 	absPath, _ := filepath.Abs(dirPath)
@@ -110,10 +146,11 @@ func runContainer(executionID, dockerImage, dirPath, language, entrypoint string
 		&container.Config{
 			Image: dockerImage,
 			Cmd:   cmd,
+			WorkingDir: "/app",
 		},
 		&container.HostConfig{
-			Binds:      []string{absPath + ":/app:ro"},
-			AutoRemove: false,
+			Binds:      []string{absPath + ":/app:z"},
+			NetworkMode: "bridge",
 		},
 		nil, nil, executionID,
 	)
