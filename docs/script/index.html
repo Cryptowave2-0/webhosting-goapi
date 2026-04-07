@@ -1,32 +1,52 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>ORBIT — Script</title>
   <link rel="stylesheet" href="../css/style.css" />
   <style>
-    .page-body { padding: 36px 0 80px; }
+    .page-body {
+      padding: 36px 0 80px;
+    }
 
     /* ── Breadcrumb ─────────────────────────────────────── */
     .breadcrumb {
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--font-mono);
       font-size: 12px;
       color: var(--text-dim);
       margin-bottom: 28px;
     }
-    .breadcrumb a { color: var(--text-dim); }
-    .breadcrumb a:hover { color: var(--accent); }
-    .breadcrumb .sep { color: var(--text-faint); }
-    .breadcrumb .current { color: var(--text-main); }
+
+    .breadcrumb a {
+      color: var(--text-dim);
+    }
+
+    .breadcrumb a:hover {
+      color: var(--accent);
+    }
+
+    .breadcrumb .sep {
+      color: var(--text-faint);
+    }
+
+    .breadcrumb .current {
+      color: var(--text-main);
+    }
 
     /* ── Script header ──────────────────────────────────── */
     .script-header {
-      display: flex; align-items: flex-start; justify-content: space-between;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
       gap: 20px;
       margin-bottom: 32px;
     }
+
     .script-title-group h1 {
       font-family: var(--font-display);
       font-size: 22px;
@@ -34,15 +54,21 @@
       color: var(--text-bright);
       margin-bottom: 6px;
     }
+
     .script-title-group .meta {
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       font-size: 12px;
       color: var(--text-dim);
       font-family: var(--font-mono);
     }
 
     .action-bar {
-      display: flex; gap: 10px; flex-shrink: 0; flex-wrap: wrap;
+      display: flex;
+      gap: 10px;
+      flex-shrink: 0;
+      flex-wrap: wrap;
     }
 
     /* ── Layout 2 colonnes ──────────────────────────────── */
@@ -54,18 +80,30 @@
     }
 
     @media (max-width: 900px) {
-      .content-grid { grid-template-columns: 1fr; }
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     /* ── Sidebar (arbre + infos) ────────────────────────── */
-    .sidebar { display: flex; flex-direction: column; gap: 20px; }
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
 
     .info-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
-    .info-item { display: flex; flex-direction: column; gap: 2px; }
+
+    .info-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .info-key {
       font-size: 10px;
       font-weight: 600;
@@ -73,6 +111,7 @@
       text-transform: uppercase;
       color: var(--text-dim);
     }
+
     .info-val {
       font-family: var(--font-mono);
       font-size: 13px;
@@ -81,7 +120,9 @@
 
     /* ── Execution history ──────────────────────────────── */
     .exec-item {
-      display: flex; align-items: center; gap: 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
       padding: 10px 14px;
       border-radius: var(--radius);
       cursor: pointer;
@@ -89,23 +130,54 @@
       font-family: var(--font-mono);
       font-size: 12px;
     }
-    .exec-item:hover { background: var(--bg-hover); }
-    .exec-item.active { background: var(--bg-hover); border: 1px solid var(--border-lit); }
-    .exec-meta { flex: 1; min-width: 0; }
-    .exec-id { color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .exec-time { color: var(--text-faint); font-size: 11px; }
-    .exec-duration { color: var(--text-dim); margin-left: auto; flex-shrink: 0; }
+
+    .exec-item:hover {
+      background: var(--bg-hover);
+    }
+
+    .exec-item.active {
+      background: var(--bg-hover);
+      border: 1px solid var(--border-lit);
+    }
+
+    .exec-meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .exec-id {
+      color: var(--text-dim);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .exec-time {
+      color: var(--text-faint);
+      font-size: 11px;
+    }
+
+    .exec-duration {
+      color: var(--text-dim);
+      margin-left: auto;
+      flex-shrink: 0;
+    }
 
     /* ── Terminal ───────────────────────────────────────── */
     .terminal-status {
-      display: flex; align-items: center; gap: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-family: var(--font-mono);
       font-size: 11px;
       color: var(--text-dim);
     }
 
     .no-exec-msg {
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
       height: 200px;
       color: var(--text-faint);
       font-family: var(--font-mono);
@@ -119,11 +191,18 @@
       border: 1px solid #ff335522;
       border-radius: var(--radius);
       padding: 14px 18px;
-      display: flex; align-items: center; justify-content: space-between;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
     }
-    .danger-label { font-size: 13px; color: var(--text-dim); }
+
+    .danger-label {
+      font-size: 13px;
+      color: var(--text-dim);
+    }
   </style>
 </head>
+
 <body>
   <div class="starfield"></div>
 
@@ -167,6 +246,8 @@
         </div>
         <div class="action-bar" id="action-bar">
           <button class="btn btn-success" id="btn-run" onclick="runScript()">▶ Lancer</button>
+          <button class="btn btn-ghost" onclick="openEditor()">✏ Éditer</button>
+          <button class="btn btn-ghost" onclick="Utils.go('./settings/?id='+scriptId)">⚙ Paramètres</button>
           <button class="btn btn-danger" id="btn-delete" onclick="confirmDelete()">✕ Supprimer</button>
         </div>
       </div>
@@ -211,7 +292,8 @@
           <div class="danger-zone">
             <div>
               <div class="danger-label">Zone de danger</div>
-              <div style="font-size:12px;color:var(--text-faint);margin-top:2px">Supprimer définitivement ce script et tous ses fichiers</div>
+              <div style="font-size:12px;color:var(--text-faint);margin-top:2px">Supprimer définitivement ce script et
+                tous ses fichiers</div>
             </div>
             <button class="btn btn-danger btn-sm" onclick="confirmDelete()">Supprimer le script</button>
           </div>
@@ -290,7 +372,7 @@
         document.getElementById("info-grid").innerHTML = `
           <div class="info-item">
             <span class="info-key">ID</span>
-            <span class="info-val" title="${s.id}" style="font-size:10px">${s.id.slice(0,8)}…</span>
+            <span class="info-val" title="${s.id}" style="font-size:10px">${s.id.slice(0, 8)}…</span>
           </div>
           <div class="info-item">
             <span class="info-key">Image Docker</span>
@@ -350,7 +432,7 @@
           <div class="exec-item" id="exec-${e.id}" onclick="selectExecution('${e.id}', '${e.status}', '${e.started_at}', '${e.finished_at || ''}')">
             ${Utils.statusDot(e.status)}
             <div class="exec-meta">
-              <div class="exec-id">${e.id.slice(0,16)}…</div>
+              <div class="exec-id">${e.id.slice(0, 16)}…</div>
               <div class="exec-time">${Utils.formatDate(e.started_at)}</div>
             </div>
             <span class="badge badge-${e.status}" style="font-size:10px">${e.status}</span>
@@ -493,40 +575,40 @@
 
     // ── Helpers ──────────────────────────────────────────────
     function escHtml(s) {
-      return (s || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     function getFileIcon(path) {
       const ext = path.split(".").pop().toLowerCase();
-      const map = { py:"🐍", js:"🟨", sh:"🔧", json:"📋", txt:"📄", md:"📝", zip:"📦", req:"📦" };
+      const map = { py: "🐍", js: "🟨", sh: "🔧", json: "📋", txt: "📄", md: "📝", zip: "📦", req: "📦" };
       return map[ext] || "📄";
     }
 
     function buildTreeFromAPI(files) {
-        const root = { name: "", children: {}, files: [] };
+      const root = { name: "", children: {}, files: [] };
 
-        for (const f of files) {
-          const parts = f.path.split("/");
-          let node = root;
+      for (const f of files) {
+        const parts = f.path.split("/");
+        let node = root;
 
-          for (let i = 0; i < parts.length - 1; i++) {
-            const seg = parts[i];
-            if (!node.children[seg]) {
-              node.children[seg] = { name: seg, children: {}, files: [] };
-            }
-            node = node.children[seg];
+        for (let i = 0; i < parts.length - 1; i++) {
+          const seg = parts[i];
+          if (!node.children[seg]) {
+            node.children[seg] = { name: seg, children: {}, files: [] };
           }
-
-          node.files.push({
-            name: parts[parts.length - 1],
-            size: f.size || 0
-          });
+          node = node.children[seg];
         }
 
-        return root;
+        node.files.push({
+          name: parts[parts.length - 1],
+          size: f.size || 0
+        });
       }
 
-    function renderNode(name, depth, isFile, size) {
+      return root;
+    }
+
+    function renderNode(name, depth, isFile, size, fullPath = "") {
       const el = document.createElement("div");
 
       const row = document.createElement("div");
@@ -561,6 +643,12 @@
         row.appendChild(sz);
       }
 
+      if (isFile) {
+        row.style.cursor = "pointer";
+        row.title = "Ouvrir dans l'éditeur";
+        row.onclick = () => openEditor(fullPath);
+      }
+
       el.appendChild(row);
 
       if (!isFile) {
@@ -583,7 +671,7 @@
       return el;
     }
 
-    function populateTree(domNode, treeNode, depth) {
+    function populateTree(domNode, treeNode, depth, parentPath = "") {
       const folders = Object.keys(treeNode.children).sort();
 
       for (const key of folders) {
@@ -591,15 +679,24 @@
         const el = renderNode(key, depth, false, 0);
 
         domNode.appendChild(el);
-        populateTree(el._children, child, depth + 1);
+
+        populateTree(el._children, child, depth + 1, parentPath ? parentPath + "/" + key : key);
       }
 
       const files = [...treeNode.files].sort((a, b) => a.name.localeCompare(b.name));
 
       for (const f of files) {
-        const el = renderNode(f.name, depth, true, f.size);
+        const fullPath = parentPath ? parentPath + "/" + f.name : f.name;
+        const el = renderNode(f.name, depth, true, f.size, fullPath);
         domNode.appendChild(el);
       }
+    }
+
+    function openEditor(filePath) {
+      const url = filePath
+        ? `../editor/?id=${scriptId}&file=${encodeURIComponent(filePath)}`
+        : `../editor/?id=${scriptId}`;
+      Utils.go(url);
     }
 
     // ── Init ─────────────────────────────────────────────────
@@ -607,4 +704,5 @@
     loadExecutions();
   </script>
 </body>
+
 </html>

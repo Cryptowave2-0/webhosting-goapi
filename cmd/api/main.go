@@ -19,8 +19,8 @@ func main() {
 
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"http://127.0.0.1:5500", "http://localhost:5500"},
-		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
 		AllowCredentials: true,
 	}))
 
@@ -36,6 +36,7 @@ func main() {
 
 	auth.Setup(db)
 	handlers.Setup(db)
+	handlers.StartGithubPoller()
 
 	fmt.Println(`
 	 ______    ______   __    __
@@ -137,5 +138,20 @@ func initDB(db *sql.DB) {
 	_, err = db.Exec(`ALTER TABLE scripts ADD COLUMN entrypoint TEXT NOT NULL DEFAULT '';`)
 	if err != nil {
 		log.Println("entrypoint column may already exist:", err)
+	}
+
+	migrations := []string{
+		`ALTER TABLE scripts ADD COLUMN github_url TEXT`,
+		`ALTER TABLE scripts ADD COLUMN github_token TEXT`,
+		`ALTER TABLE scripts ADD COLUMN auto_update INTEGER DEFAULT 0`,
+		`ALTER TABLE scripts ADD COLUMN auto_restart INTEGER DEFAULT 0`,
+		`ALTER TABLE scripts ADD COLUMN last_commit_sha TEXT`,
+		`ALTER TABLE scripts ADD COLUMN last_pulled_at DATETIME`,
+	}
+
+	for _, m := range migrations {
+		if _, err := db.Exec(m); err != nil {
+			log.Infof("migration may already exist: %s", err)
+		}
 	}
 }

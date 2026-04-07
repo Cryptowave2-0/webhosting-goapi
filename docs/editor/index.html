@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ORBIT — Éditeur</title>
+  <link rel="stylesheet" href="../css/style.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/python/python.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/shell/shell.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/markdown/markdown.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+  <style>
+    body { overflow: hidden; }
+    .editor-layout {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      grid-template-rows: 48px 1fr;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ── Topbar ─────────────────────────────────────────── */
+    .editor-topbar {
+      grid-column: 1 / -1;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 0 16px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+      z-index: 10;
+    }
+    .topbar-brand {
+      font-family: var(--font-display);
+      font-size: 14px;
+      letter-spacing: 2px;
+      color: var(--accent);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .topbar-sep { color: var(--text-faint); font-size: 14px; }
+    .topbar-script-name {
+      font-size: 13px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 200px;
+    }
+    .topbar-file {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-main);
+      background: var(--bg-main);
+      padding: 3px 8px;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+    }
+    .topbar-file.modified { color: var(--accent); border-color: var(--accent-dim); }
+    .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+    .save-status {
+      font-size: 11px;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      min-width: 80px;
+      text-align: right;
+    }
+    .save-status.saving { color: var(--accent); }
+    .save-status.saved { color: var(--green); }
+    .save-status.error { color: var(--red); }
+
+    /* ── Sidebar arborescence ───────────────────────────── */
+    .editor-sidebar {
+      background: var(--bg-card);
+      border-right: 1px solid var(--border);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 12px 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sidebar-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--text-faint);
+    }
+    .sidebar-actions { display: flex; gap: 4px; }
+    .sidebar-btn {
+      width: 22px; height: 22px;
+      display: flex; align-items: center; justify-content: center;
+      background: none;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 14px;
+      transition: background var(--transition), color var(--transition);
+    }
+    .sidebar-btn:hover { background: var(--bg-hover); color: var(--text-main); }
+
+    .file-tree { flex: 1; padding: 4px 0; font-family: var(--font-mono); font-size: 12px; }
+    .ft-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      cursor: pointer;
+      border-radius: 4px;
+      margin: 1px 4px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      transition: background var(--transition), color var(--transition);
+      position: relative;
+    }
+    .ft-item:hover { background: var(--bg-hover); color: var(--text-main); }
+    .ft-item.active { background: var(--accent-glow); color: var(--accent); }
+    .ft-item.active::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 2px;
+      background: var(--accent);
+      border-radius: 0 2px 2px 0;
+    }
+    .ft-arrow {
+      width: 12px; height: 12px;
+      flex-shrink: 0;
+      transition: transform 0.12s;
+      color: var(--text-faint);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .ft-arrow.open { transform: rotate(90deg); }
+    .ft-arrow svg { width: 8px; height: 8px; }
+    .ft-icon { flex-shrink: 0; font-size: 13px; }
+    .ft-name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
+    .ft-actions {
+      display: none;
+      gap: 2px;
+      flex-shrink: 0;
+    }
+    .ft-item:hover .ft-actions { display: flex; }
+    .ft-act-btn {
+      width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none;
+      border-radius: 3px; cursor: pointer;
+      font-size: 11px; color: var(--text-faint);
+      transition: background var(--transition), color var(--transition);
+    }
+    .ft-act-btn:hover { background: var(--border); color: var(--text-main); }
+    .ft-children { overflow: hidden; }
+
+    /* ── Editor zone ────────────────────────────────────── */
+    .editor-main {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .editor-tabs {
+      display: flex;
+      align-items: center;
+      background: var(--bg-main);
+      border-bottom: 1px solid var(--border);
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-shrink: 0;
+    }
+    .editor-tabs::-webkit-scrollbar { height: 3px; }
+    .editor-tabs::-webkit-scrollbar-thumb { background: var(--border-lit); }
+    .editor-tab {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 12px;
+      height: 34px;
+      cursor: pointer;
+      border-right: 1px solid var(--border);
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-dim);
+      white-space: nowrap;
+      flex-shrink: 0;
+      transition: background var(--transition), color var(--transition);
+      position: relative;
+    }
+    .editor-tab:hover { background: var(--bg-hover); color: var(--text-main); }
+    .editor-tab.active {
+      background: var(--bg-card);
+      color: var(--text-bright);
+      border-bottom: 2px solid var(--accent);
+    }
+    .editor-tab.modified .tab-dot { color: var(--accent); }
+    .tab-dot { font-size: 16px; line-height: 1; }
+    .tab-close {
+      width: 16px; height: 16px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 3px;
+      font-size: 12px;
+      color: var(--text-faint);
+      transition: background var(--transition), color var(--transition);
+    }
+    .tab-close:hover { background: var(--border); color: var(--red); }
+    .editor-no-file {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-faint);
+      font-family: var(--font-mono);
+      font-size: 13px;
+      gap: 8px;
+    }
+    .editor-no-file .no-file-icon { font-size: 40px; opacity: 0.4; }
+    .editor-wrapper {
+      flex: 1;
+      overflow: hidden;
+      position: relative;
+    }
+    .CodeMirror {
+      height: 100%;
+      font-family: var(--font-mono) !important;
+      font-size: 13px !important;
+      line-height: 1.6 !important;
+    }
+
+    /* ── Statusbar ──────────────────────────────────────── */
+    .editor-statusbar {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 0 12px;
+      height: 24px;
+      background: var(--accent);
+      font-size: 11px;
+      font-family: var(--font-mono);
+      color: #000;
+      flex-shrink: 0;
+    }
+    .sb-item { opacity: 0.8; }
+    .sb-item.bright { opacity: 1; font-weight: 600; }
+
+    /* ── Modal nouveau fichier ──────────────────────────── */
+    .new-file-modal {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .new-file-modal.open { display: flex; }
+    .new-file-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-lit);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      width: 360px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .new-file-box h3 { font-size: 14px; color: var(--text-bright); margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="editor-layout">
+
+    <!-- Topbar -->
+    <div class="editor-topbar">
+      <span class="topbar-brand" onclick="Utils.go('../')">ORBIT</span>
+      <span class="topbar-sep">›</span>
+      <span class="topbar-script-name" id="tb-script-name">Chargement...</span>
+      <span class="topbar-sep">›</span>
+      <span class="topbar-file" id="tb-file">—</span>
+      <div class="topbar-actions">
+        <span class="save-status" id="save-status"></span>
+        <button class="btn btn-ghost btn-sm" onclick="Utils.go('../script/?id='+scriptId)">← Script</button>
+        <button class="btn btn-primary btn-sm" id="btn-save" onclick="saveFile()" disabled>💾 Sauvegarder</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="editor-sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Fichiers</span>
+        <div class="sidebar-actions">
+          <button class="sidebar-btn" title="Nouveau fichier" onclick="openNewFileModal()">+</button>
+          <button class="sidebar-btn" title="Télécharger archive" onclick="downloadArchive()">⬇</button>
+        </div>
+      </div>
+      <div class="file-tree" id="file-tree">
+        <div style="padding:12px;color:var(--text-faint);font-size:11px">Chargement...</div>
+      </div>
+    </div>
+
+    <!-- Editor -->
+    <div class="editor-main">
+      <div class="editor-tabs" id="editor-tabs"></div>
+      <div class="editor-wrapper" id="editor-wrapper">
+        <div class="editor-no-file" id="no-file-msg">
+          <span class="no-file-icon">📂</span>
+          <span>Sélectionnez un fichier</span>
+        </div>
+      </div>
+      <div class="editor-statusbar">
+        <span class="sb-item bright" id="sb-lang">—</span>
+        <span class="sb-item" id="sb-pos">Ln 1, Col 1</span>
+        <span class="sb-item" id="sb-size">—</span>
+        <span class="sb-item" style="margin-left:auto">UTF-8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal nouveau fichier -->
+  <div class="new-file-modal" id="new-file-modal" onclick="closeNewFileModal(event)">
+    <div class="new-file-box">
+      <h3>+ Nouveau fichier</h3>
+      <div class="form-group">
+        <label class="form-label">Chemin du fichier</label>
+        <input class="form-input" id="new-file-path" type="text" placeholder="dossier/fichier.py" />
+      </div>
+      <div style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-ghost btn-sm" onclick="closeNewFileModal()">Annuler</button>
+        <button class="btn btn-primary btn-sm" onclick="createNewFile()">Créer</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../js/config.js"></script>
+  <script src="../js/api.js"></script>
+  <script src="../js/utils.js"></script>
+  <script>
+    Utils.requireAuth();
+
+    const params = new URLSearchParams(location.search);
+    const scriptId = params.get("id");
+    const initFile = params.get("file") || null;
+
+    if (!scriptId) { Utils.go("../dashboard/"); }
+
+    let editor = null;
+    let currentPath = null;
+    let openTabs = {}; // path → { content, modified, cmContent }
+    let scriptData = null;
+
+    // ── Charger le script ───────────────────────────────────
+    async function loadScript() {
+      try {
+        scriptData = await API.getScript(scriptId);
+        document.title = `ORBIT — ${scriptData.name}`;
+        document.getElementById("tb-script-name").textContent = scriptData.name;
+        renderTree(scriptData.tree || []);
+        if (initFile) openFile(initFile);
+      } catch (e) {
+        Utils.toast(e.message, "error");
+      }
+    }
+
+    // ── Arborescence ────────────────────────────────────────
+    const FILE_ICONS = {
+      py:"🐍", js:"🟨", sh:"🔧", json:"📋", txt:"📄",
+      md:"📝", zip:"📦", db:"🗄️", pyc:"📦", zst:"📦",
+      html:"🌐", css:"🎨", ts:"🔷", yml:"📋", yaml:"📋",
+    };
+    const FOLDER_ICONS = { ".git":"🔒", "__pycache__":"⚙️", "hooks":"🪝" };
+
+    function fileIcon(name) {
+      const ext = name.split(".").pop().toLowerCase();
+      return FILE_ICONS[ext] || "📄";
+    }
+    function folderIcon(name) { return FOLDER_ICONS[name] || "📁"; }
+
+    function buildTreeData(entries) {
+      const root = { children: {}, files: [] };
+      for (const e of entries) {
+        const parts = e.path.split("/");
+        let node = root;
+        for (let i = 0; i < parts.length - 1; i++) {
+          if (!node.children[parts[i]]) node.children[parts[i]] = { children: {}, files: [] };
+          node = node.children[parts[i]];
+        }
+        node.files.push({ name: parts[parts.length - 1], size: e.size, fullPath: e.path });
+      }
+      return root;
+    }
+
+    function renderTree(entries) {
+      const data = buildTreeData(entries);
+      const el = document.getElementById("file-tree");
+      el.innerHTML = "";
+      populateNode(el, data, 0);
+    }
+
+    function populateNode(container, node, depth, parentPath = "") {
+      const folders = Object.keys(node.children).sort();
+      const files = [...node.files].sort((a, b) => a.name.localeCompare(b.name));
+
+      for (const key of folders) {
+        const child = node.children[key];
+        const folderPath = parentPath ? parentPath + "/" + key : key;
+        const item = document.createElement("div");
+        item.className = "ft-item";
+        item.style.paddingLeft = (8 + depth * 14) + "px";
+        item.dataset.type = "folder";
+        item.dataset.path = folderPath;
+        item.innerHTML = `
+        <span class="ft-arrow"><svg viewBox="0 0 8 8" fill="none"><path d="M2 1.5l3 2.5-3 2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="ft-icon">${folderIcon(key)}</span>
+        <span class="ft-name">${key}</span>
+      `;
+        const childDiv = document.createElement("div");
+        childDiv.className = "ft-children";
+        childDiv.style.display = "none";
+
+        // Drop target sur les dossiers
+        item.addEventListener("dragover", e => {
+          e.preventDefault();
+          item.style.background = "var(--accent-glow)";
+        });
+        item.addEventListener("dragleave", () => {
+          item.style.background = "";
+        });
+        item.addEventListener("drop", async e => {
+          e.preventDefault();
+          item.style.background = "";
+          const fromPath = e.dataTransfer.getData("text/plain");
+          if (!fromPath) return;
+          const fileName = fromPath.split("/").pop();
+          const toPath = folderPath + "/" + fileName;
+          if (fromPath === toPath) return;
+          await handleMove(fromPath, toPath);
+        });
+
+        item.onclick = (e) => {
+          e.stopPropagation();
+          const arrow = item.querySelector(".ft-arrow");
+          const open = childDiv.style.display !== "none";
+          childDiv.style.display = open ? "none" : "block";
+          arrow.classList.toggle("open", !open);
+        };
+
+        container.appendChild(item);
+        container.appendChild(childDiv);
+        populateNode(childDiv, child, depth + 1, folderPath);
+      }
+
+      for (const f of files) {
+        const fullPath = parentPath ? parentPath + "/" + f.name : f.name;
+        const item = document.createElement("div");
+        item.className = "ft-item";
+        item.dataset.path = fullPath;
+        item.style.paddingLeft = (8 + depth * 14 + 14) + "px";
+        item.draggable = true;  // ← DRAG ENABLED
+        item.innerHTML = `
+        <span class="ft-icon">${fileIcon(f.name)}</span>
+        <span class="ft-name">${f.name}</span>
+        <div class="ft-actions">
+          <button class="ft-act-btn" title="Télécharger" onclick="downloadFile('${fullPath}',event)">⬇</button>
+          <button class="ft-act-btn" title="Supprimer" onclick="deleteFile('${fullPath}',event)" style="color:var(--red)">✕</button>
+        </div>
+      `;
+
+        // Drag start
+        item.addEventListener("dragstart", e => {
+          e.dataTransfer.setData("text/plain", fullPath);
+          e.dataTransfer.effectAllowed = "move";
+          item.style.opacity = "0.5";
+        });
+        item.addEventListener("dragend", () => {
+          item.style.opacity = "";
+        });
+
+        item.onclick = () => openFile(fullPath);
+        container.appendChild(item);
+      }
+    }
+
+    function setActiveFileInTree(path) {
+      document.querySelectorAll(".ft-item.active").forEach(e => e.classList.remove("active"));
+      const el = document.querySelector(`.ft-item[data-path="${path}"]`);
+      if (el) el.classList.add("active");
+    }
+
+    // ── Tabs ────────────────────────────────────────────────
+    function renderTabs() {
+      const tabs = document.getElementById("editor-tabs");
+      tabs.innerHTML = Object.keys(openTabs).map(path => {
+        const name = path.split("/").pop();
+        const isActive = path === currentPath;
+        const isModified = openTabs[path].modified;
+        return `<div class="editor-tab ${isActive ? "active" : ""} ${isModified ? "modified" : ""}"
+          onclick="switchTab('${path}')">
+          <span class="tab-dot">${isModified ? "●" : ""}</span>
+          ${name}
+          <span class="tab-close" onclick="closeTab('${path}',event)">×</span>
+        </div>`;
+      }).join("");
+    }
+
+    function switchTab(path) {
+      if (currentPath === path) return;
+      if (currentPath && editor) {
+        openTabs[currentPath].cmContent = editor.getValue();
+      }
+      currentPath = path;
+      loadEditorContent(path);
+      renderTabs();
+      setActiveFileInTree(path);
+    }
+
+    function closeTab(path, e) {
+      e.stopPropagation();
+      if (openTabs[path].modified) {
+        if (!confirm(`${path} a des modifications non sauvegardées. Fermer quand même ?`)) return;
+      }
+      delete openTabs[path];
+      if (currentPath === path) {
+        const remaining = Object.keys(openTabs);
+        currentPath = remaining.length > 0 ? remaining[remaining.length - 1] : null;
+        if (currentPath) loadEditorContent(currentPath);
+        else showNoFile();
+      }
+      renderTabs();
+    }
+
+    // ── Ouvrir un fichier ───────────────────────────────────
+    async function openFile(path) {
+      if (openTabs[path]) {
+        switchTab(path);
+        return;
+      }
+      try {
+        const res = await API.readFile(scriptId, path);
+        openTabs[path] = { content: res.content, modified: false, cmContent: res.content };
+        currentPath = path;
+        renderTabs();
+        loadEditorContent(path);
+        setActiveFileInTree(path);
+      } catch (e) {
+        if (e.message.includes("too large")) {
+          Utils.toast("Fichier trop volumineux pour l'éditeur (max 1MB)", "warn");
+        } else {
+          Utils.toast(e.message, "error");
+        }
+      }
+    }
+
+    // ── Initialiser / charger CodeMirror ────────────────────
+    const MODES = {
+      py: "python", js: "javascript", ts: "javascript",
+      sh: "shell", bash: "shell",
+      md: "markdown", json: "javascript",
+      html: "htmlmixed", css: "css",
+    };
+
+    function getMode(path) {
+      const ext = path.split(".").pop().toLowerCase();
+      return MODES[ext] || "text/plain";
+    }
+
+    function getLangLabel(path) {
+      const ext = path.split(".").pop().toLowerCase();
+      const map = { py:"Python", js:"JavaScript", ts:"TypeScript", sh:"Shell", md:"Markdown", json:"JSON", html:"HTML", css:"CSS" };
+      return map[ext] || ext.toUpperCase();
+    }
+
+    function showNoFile() {
+      document.getElementById("no-file-msg").style.display = "flex";
+      if (editor) { editor.getWrapperElement().style.display = "none"; }
+      document.getElementById("tb-file").textContent = "—";
+      document.getElementById("tb-file").className = "topbar-file";
+      document.getElementById("btn-save").disabled = true;
+      document.getElementById("sb-lang").textContent = "—";
+      document.getElementById("sb-size").textContent = "—";
+    }
+
+    function loadEditorContent(path) {
+      const tab = openTabs[path];
+      document.getElementById("no-file-msg").style.display = "none";
+
+      const wrapper = document.getElementById("editor-wrapper");
+
+      if (!editor) {
+        const textarea = document.createElement("textarea");
+        wrapper.appendChild(textarea);
+        editor = CodeMirror.fromTextArea(textarea, {
+          theme: "dracula",
+          lineNumbers: true,
+          matchBrackets: true,
+          autoCloseBrackets: true,
+          styleActiveLine: true,
+          indentUnit: 4,
+          tabSize: 4,
+          indentWithTabs: false,
+          extraKeys: { "Ctrl-S": saveFile, "Cmd-S": saveFile },
+        });
+        editor.on("change", () => {
+          if (!currentPath) return;
+          const isModified = editor.getValue() !== openTabs[currentPath].content;
+          if (openTabs[currentPath].modified !== isModified) {
+            openTabs[currentPath].modified = isModified;
+            renderTabs();
+            updateTopbarFile();
+          }
+          updateStatusBar();
+        });
+        editor.on("cursorActivity", updateStatusBar);
+        editor.getWrapperElement().style.cssText = "height:100%;display:block;";
+      }
+
+      editor.getWrapperElement().style.display = "block";
+      editor.setOption("mode", getMode(path));
+      editor.setValue(tab.cmContent || tab.content);
+      editor.refresh();
+      setTimeout(() => { editor.refresh(); editor.focus(); }, 50);
+
+      updateTopbarFile();
+      updateStatusBar();
+      document.getElementById("btn-save").disabled = false;
+    }
+
+    function updateTopbarFile() {
+      if (!currentPath) return;
+      const el = document.getElementById("tb-file");
+      el.textContent = currentPath;
+      el.className = "topbar-file" + (openTabs[currentPath].modified ? " modified" : "");
+    }
+
+    function updateStatusBar() {
+      if (!editor || !currentPath) return;
+      const cursor = editor.getCursor();
+      document.getElementById("sb-pos").textContent = `Ln ${cursor.line + 1}, Col ${cursor.ch + 1}`;
+      document.getElementById("sb-lang").textContent = getLangLabel(currentPath);
+      const bytes = new TextEncoder().encode(editor.getValue()).length;
+      document.getElementById("sb-size").textContent = bytes < 1024 ? bytes + " B" : (bytes / 1024).toFixed(1) + " KB";
+    }
+
+    // ── Sauvegarder ─────────────────────────────────────────
+    async function saveFile() {
+      if (!currentPath || !editor) return;
+      const statusEl = document.getElementById("save-status");
+      statusEl.textContent = "Sauvegarde...";
+      statusEl.className = "save-status saving";
+      try {
+        const content = editor.getValue();
+        await API.writeFile(scriptId, currentPath, content);
+        openTabs[currentPath].content = content;
+        openTabs[currentPath].cmContent = content;
+        openTabs[currentPath].modified = false;
+        renderTabs();
+        updateTopbarFile();
+        statusEl.textContent = "✓ Sauvegardé";
+        statusEl.className = "save-status saved";
+        setTimeout(() => { statusEl.textContent = ""; statusEl.className = "save-status"; }, 2000);
+      } catch (e) {
+        statusEl.textContent = "✕ Erreur";
+        statusEl.className = "save-status error";
+        Utils.toast(e.message, "error");
+      }
+    }
+
+    // ── Télécharger ─────────────────────────────────────────
+    function downloadFile(path, e) {
+      e.stopPropagation();
+      window.open(`${CONFIG.API_URL}/scripts/${scriptId}/download/${path}`, "_blank");
+    }
+
+    function downloadArchive() {
+      window.open(`${CONFIG.API_URL}/scripts/${scriptId}/archive`, "_blank");
+    }
+
+    // ── Supprimer un fichier ─────────────────────────────────
+    async function deleteFile(path, e) {
+      e.stopPropagation();
+      if (!confirm(`Supprimer "${path}" ?`)) return;
+      try {
+        await API.deleteFile(scriptId, path);
+        Utils.toast("Fichier supprimé.", "success");
+        if (openTabs[path]) { delete openTabs[path]; }
+        if (currentPath === path) {
+          const remaining = Object.keys(openTabs);
+          currentPath = remaining.length > 0 ? remaining[0] : null;
+          if (currentPath) loadEditorContent(currentPath);
+          else showNoFile();
+          renderTabs();
+        }
+        // Rafraîchir l'arbre
+        scriptData = await API.getScript(scriptId);
+        renderTree(scriptData.tree || []);
+      } catch (err) {
+        Utils.toast(err.message, "error");
+      }
+    }
+
+    // ── Nouveau fichier ─────────────────────────────────────
+    function openNewFileModal() {
+      document.getElementById("new-file-modal").classList.add("open");
+      document.getElementById("new-file-path").focus();
+    }
+
+    function closeNewFileModal(e) {
+      if (!e || e.target === document.getElementById("new-file-modal")) {
+        document.getElementById("new-file-modal").classList.remove("open");
+        document.getElementById("new-file-path").value = "";
+      }
+    }
+
+    async function createNewFile() {
+      const path = document.getElementById("new-file-path").value.trim();
+      if (!path) return;
+      try {
+        await API.createFile(scriptId, path, "");
+        closeNewFileModal();
+        Utils.toast(`"${path}" créé.`, "success");
+        scriptData = await API.getScript(scriptId);
+        renderTree(scriptData.tree || []);
+        openFile(path);
+      } catch (err) {
+        Utils.toast(err.message, "error");
+      }
+    }
+
+    document.getElementById("new-file-path").addEventListener("keydown", e => {
+      if (e.key === "Enter") createNewFile();
+      if (e.key === "Escape") closeNewFileModal();
+    });
+
+
+    async function handleMove(fromPath, toPath) {
+      try {
+        await API.moveFile(scriptId, fromPath, toPath);
+        Utils.toast(`Déplacé vers ${toPath}`, "success");
+
+        // Mettre à jour l'onglet si le fichier était ouvert
+        if (openTabs[fromPath]) {
+          openTabs[toPath] = openTabs[fromPath];
+          delete openTabs[fromPath];
+          if (currentPath === fromPath) currentPath = toPath;
+          renderTabs();
+        }
+
+        // Rafraîchir l'arbre
+        scriptData = await API.getScript(scriptId);
+        renderTree(scriptData.tree || []);
+        setActiveFileInTree(currentPath);
+      } catch (e) {
+        Utils.toast(e.message, "error");
+      }
+    }
+
+
+    // ── Init ────────────────────────────────────────────────
+    loadScript();
+  </script>
+</body>
+</html>
